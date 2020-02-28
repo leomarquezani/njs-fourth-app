@@ -1,13 +1,15 @@
-const Product = require("../models/product");
-const Order = require("../models/order");
+const Product = require('../models/product');
+const Order = require('../models/order');
 
 exports.getProducts = (req, res, next) => {
   Product.find()
     .then(products => {
-      res.render("shop/product-list", {
+      console.log(products);
+      res.render('shop/product-list', {
         prods: products,
-        pageTitle: "All Products",
-        path: "/products"
+        pageTitle: 'All Products',
+        path: '/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => {
@@ -17,13 +19,13 @@ exports.getProducts = (req, res, next) => {
 
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
-
   Product.findById(prodId)
     .then(product => {
-      res.render("shop/product-detail", {
+      res.render('shop/product-detail', {
         product: product,
         pageTitle: product.title,
-        path: "/products"
+        path: '/products',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err));
@@ -32,10 +34,11 @@ exports.getProduct = (req, res, next) => {
 exports.getIndex = (req, res, next) => {
   Product.find()
     .then(products => {
-      res.render("shop/index", {
+      res.render('shop/index', {
         prods: products,
-        pageTitle: "Shop",
-        path: "/"
+        pageTitle: 'Shop',
+        path: '/',
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => {
@@ -45,14 +48,15 @@ exports.getIndex = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
   req.user
-    .populate("cart.items.productId")
+    .populate('cart.items.productId')
     .execPopulate()
     .then(user => {
       const products = user.cart.items;
-      res.render("shop/cart", {
-        path: "/cart",
-        pageTitle: "Your Cart",
-        products: products
+      res.render('shop/cart', {
+        path: '/cart',
+        pageTitle: 'Your Cart',
+        products: products,
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err));
@@ -60,16 +64,14 @@ exports.getCart = (req, res, next) => {
 
 exports.postCart = (req, res, next) => {
   const prodId = req.body.productId;
-  console.log("POST TO CART ");
   Product.findById(prodId)
     .then(product => {
-      console.log("POST TO CART ", product);
       return req.user.addToCart(product);
     })
     .then(result => {
-      res.redirect("/cart");
-    })
-    .catch();
+      console.log(result);
+      res.redirect('/cart');
+    });
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
@@ -77,14 +79,14 @@ exports.postCartDeleteProduct = (req, res, next) => {
   req.user
     .removeFromCart(prodId)
     .then(result => {
-      res.redirect("/cart");
+      res.redirect('/cart');
     })
     .catch(err => console.log(err));
 };
 
 exports.postOrder = (req, res, next) => {
   req.user
-    .populate("cart.items.productId")
+    .populate('cart.items.productId')
     .execPopulate()
     .then(user => {
       const products = user.cart.items.map(i => {
@@ -103,23 +105,20 @@ exports.postOrder = (req, res, next) => {
       return req.user.clearCart();
     })
     .then(() => {
-      res.redirect("/orders");
-    });
+      res.redirect('/orders');
+    })
+    .catch(err => console.log(err));
 };
 
 exports.getOrders = (req, res, next) => {
-  Order.find({ "user.userId": req.user._id }).then(orders => {
-    res.render("shop/orders", {
-      path: "/orders",
-      pageTitle: "Your Orders",
-      orders: orders
-    });
-  });
-};
-
-exports.getCheckout = (req, res, next) => {
-  res.render("shop/checkout", {
-    path: "/checkout",
-    pageTitle: "Checkout"
-  });
+  Order.find({ 'user.userId': req.user._id })
+    .then(orders => {
+      res.render('shop/orders', {
+        path: '/orders',
+        pageTitle: 'Your Orders',
+        orders: orders,
+        isAuthenticated: req.session.isLoggedIn
+      });
+    })
+    .catch(err => console.log(err));
 };
